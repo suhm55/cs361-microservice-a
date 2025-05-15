@@ -9,40 +9,48 @@ dotenv.config();
 
 const port = process.env.PORT;
 
-app.post("/ping", async (req, res) => {
-  const { target } = req.body;
+app.get("/ping", async (req, res) => {
+  const target = req.query.target;
 
-  try {
-    const pingResponse = await ping.promise.probe(target, { timeout: 0.5 });
-    const { alive } = pingResponse;
-
-    if (alive) {
-      console.log(`${target} is alive!`);
-      res.sendStatus(200);
-    } else {
-      console.log(`${target} is dead.`);
-      res.sendStatus(503);
+  async function pingTarget() {
+    try {
+      const pingResponse = await ping.promise.probe(target, { timeout: 0.5 });
+      const { alive } = pingResponse;
+  
+      if (alive) {
+        console.log(`${target} is alive!`);
+        res.sendStatus(200);
+      } else {
+        console.log(`${target} is dead.`);
+        res.sendStatus(503);
+      }
+    } catch (error) {
+      console.error(error);
     }
-  } catch (error) {
-    console.error(error);
   }
+  await pingTarget();
 });
 
-app.post("/healthcheck", async (req, res) => {
-  const { target, resp } = req.body;
+app.get("/healthcheck", async (req, res) => {
+  const target = req.query.target;
+  const resp = req.query.resp;
 
-  try {
-    const healthcheckResponse = await axios.get(`${target}/healthcheck`);
-    if (healthcheckResponse.data === resp) {
-      console.log("Healthy!");
-      res.sendStatus(200);
-    } else {
-      console.log("Unhealthy.");
-      res.sendStatus(503);
+  async function checkHealth() {
+    try {
+      const healthcheckResponse = await axios.get(`${target}/healthcheck`);
+      if (healthcheckResponse.data === resp && healthcheckResponse.status === 200) {
+        console.log("Healthy!");
+        res.sendStatus(200);
+      } else {
+        console.log("Unhealthy.");
+        res.sendStatus(503);
+      }
+    } catch (error) {
+      console.error(error);
     }
-  } catch (error) {
-    console.error(error);
   }
+
+  await checkHealth();
 });
 
 app.listen(port, () => {
